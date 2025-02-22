@@ -12,18 +12,8 @@ import { useToast } from "@/components/ui/use-toast";
 export default function BookManager() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('')
-  const [books, setBooks] = useState([
-    { id: 1, title: "The Great Gatsby", author: "F. Scott Fitzgerald", description: "A novel set in the Roaring Twenties.", country: "USA", language: "English", year: 1925 },
-    { id: 2, title: "1984", author: "George Orwell", description: "A dystopian novel about government surveillance and control.", country: "UK", language: "English", year: 1949 },
-    { id: 3, title: "To Kill a Mockingbird", author: "Harper Lee", description: "A novel about racial injustice in the American South.", country: "USA", language: "English", year: 1960 },
-    { id: 4, title: "Pride and Prejudice", author: "Jane Austen", description: "A romantic novel set in 19th century England.", country: "UK", language: "English", year: 1813 },
-    { id: 5, title: "The Catcher in the Rye", author: "J.D. Salinger", description: "A novel about a teenager's journey of self-discovery.", country: "USA", language: "English", year: 1951 },
-    { id: 6, title: "The Hobbit", author: "J.R.R. Tolkien", description: "A fantasy novel about a hobbit's adventure.", country: "UK", language: "English", year: 1937 },
-    { id: 7, title: "Moby Dick", author: "Herman Melville", description: "A novel about a whaling voyage.", country: "USA", language: "English", year: 1851 },
-    { id: 8, title: "War and Peace", author: "Leo Tolstoy", description: "A novel about the French invasion of Russia.", country: "Russia", language: "Russian", year: 1869 },
-    { id: 9, title: "The Odyssey", author: "Homer", description: "An epic poem about a hero's journey.", country: "Greece", language: "Greek", year: -800 },
-    { id: 10, title: "The Brothers Karamazov", author: "Fyodor Dostoevsky", description: "A novel about a family's moral conflicts.", country: "Russia", language: "Russian", year: 1880 }
-  ])
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [personalList, setPersonalList] = useState<{ id: number, title: string, author: string, description: string, country: string, language: string, year: number }[]>([])
   const [editingBook, setEditingBook] = useState<{ id: number, title: string, author: string, description: string, country: string, language: string, year: number } | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -53,10 +43,31 @@ export default function BookManager() {
     setCurrentPage(1)
   }
 
-  const filteredBooks = books.filter(book => 
-    book.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    (filterOption === 'All' || book[filterOption as keyof typeof book].toString().toLowerCase().includes(filterValue.toLowerCase()))
-  )
+  useEffect(() => {
+    const fetchBooks = async () => {
+      setLoading(true);
+      try {
+        const url = searchQuery 
+          ? `http://64.227.142.191:8080/application-test-v1.1/books?title=${searchQuery}`
+          : `http://64.227.142.191:8080/application-test-v1.1/books`;
+        const response = await fetch(url);
+        const result = await response.json();
+        setBooks(result.data || []);
+      } catch (error) {
+        console.error("Error fetching books:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    fetchBooks();
+  }, [searchQuery]);
+  
+  
+  const filteredBooks = books.filter(
+    (book) =>
+      (filterOption === "All" || book[filterOption]?.toString().toLowerCase().includes(filterValue.toLowerCase()))
+  );
 
   const sortedBooks = [...filteredBooks].sort((a, b) => {
     if (sortOption === 'title') {
@@ -185,51 +196,51 @@ export default function BookManager() {
           </div>
 
           <AnimatePresence mode="popLayout">
-            <motion.div 
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+  <motion.div 
+    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+  >
+    {currentBooks.map((book, index) => (
+      <motion.div
+        key={book.id}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0,
+          transition: { delay: index * 0.1 }
+        }}
+        exit={{ opacity: 0, y: -20 }}
+        className="group"
+      >
+        <Card className="h-full transition-all duration-300 hover:shadow-lg border border-gray-100 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold leading-tight">{book.title}</CardTitle>
+            <CardDescription className="text-sm text-gray-500">{book.author}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm text-gray-600">{book.description}</p>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <span className="px-2 py-1 bg-primary/5 rounded-md text-xs text-primary/80">{book.country}</span>
+              <span className="px-2 py-1 bg-primary/5 rounded-md text-xs text-primary/80">{book.language}</span>
+              <span className="px-2 py-1 bg-primary/5 rounded-md text-xs text-primary/80">{book.year}</span>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => handleAddToPersonalList(book)}
+              className="w-full transition-all duration-200 hover:bg-primary hover:text-white"
             >
-              {currentBooks.map((book, index) => (
-                <motion.div
-                  key={book.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ 
-                    opacity: 1, 
-                    y: 0,
-                    transition: { delay: index * 0.1 }
-                  }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="group"
-                >
-                  <Card className="h-full transition-all duration-300 hover:shadow-lg border border-gray-100">
-                    <CardHeader>
-                      <CardTitle className="text-xl font-semibold leading-tight">{book.title}</CardTitle>
-                      <CardDescription className="text-sm text-gray-500">{book.author}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <p className="text-sm text-gray-600">{book.description}</p>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <span className="px-2 py-1 bg-primary/5 rounded-md text-xs text-primary/80">{book.country}</span>
-                        <span className="px-2 py-1 bg-primary/5 rounded-md text-xs text-primary/80">{book.language}</span>
-                        <span className="px-2 py-1 bg-primary/5 rounded-md text-xs text-primary/80">{book.year}</span>
-                      </div>
-                    </CardContent>
-                    <CardFooter>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => handleAddToPersonalList(book)}
-                        className="w-full transition-all duration-200 hover:bg-primary hover:text-white"
-                      >
-                        <Plus className="mr-2 h-4 w-4" /> Add to List
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                </motion.div>
-              ))}
-            </motion.div>
-          </AnimatePresence>
+              <Plus className="mr-2 h-4 w-4" /> Add to List
+            </Button>
+          </CardFooter>
+        </Card>
+      </motion.div>
+    ))}
+  </motion.div>
+</AnimatePresence>
 
           <div className="flex justify-center items-center mt-8 space-x-4">
             <Button
@@ -275,7 +286,7 @@ export default function BookManager() {
                   exit={{ opacity: 0, y: -20 }}
                   className="group"
                 >
-                  <Card className="h-full transition-all duration-300 hover:shadow-lg border border-gray-100">
+                  <Card className="h-full transition-all duration-300 hover:shadow-lg border border-gray-100 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700">
                     <CardHeader>
                       <CardTitle className="text-xl font-semibold leading-tight">{book.title}</CardTitle>
                       <CardDescription className="text-sm text-gray-500">{book.author}</CardDescription>
