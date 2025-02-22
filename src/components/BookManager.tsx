@@ -116,10 +116,42 @@ export default function BookManager() {
     setEditingBook(book)
   }
 
-  const handleSaveEdit = (id: number, title: string, author: string, description: string, country: string, language: string, year: number) => {
-    setPersonalList(personalList.map(book => book.id === id ? { id, title, author, description, country, language, year } : book))
-    setEditingBook(null)
-  }
+  const handleSaveEdit = async (
+    id: number, 
+    title: string, 
+    author: string, 
+    description: string, 
+    country: string, 
+    language: string, 
+    year: number
+  ) => {
+    try {
+      const response = await fetch(`http://64.227.142.191:8080/application-test-v1.1/books/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ title, author, description, country, language, year }),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to update book");
+      }
+  
+      showNotification("Book updated successfully");
+  
+      // Update both books and personalList
+      const updatedBook = { id, title, author, description, country, language, year };
+      
+      setBooks(prevBooks => prevBooks.map(book => (book.id === id ? updatedBook : book)));
+      setPersonalList(prevList => prevList.map(book => (book.id === id ? updatedBook : book)));
+  
+      setEditingBook(null);
+    } catch (error) {
+      console.error("Error updating book:", error);
+      showNotification("Failed to update book");
+    }
+  };  
 
   const handleDeleteBook = (id: number) => {
     setPersonalList(personalList.filter(book => book.id !== id))
@@ -401,8 +433,8 @@ export default function BookManager() {
                       handleSaveEdit(editingBook.id, title, author, description, country, language, year);
                       showNotification("Book updated successfully");
                     }}>
-                      Save Changes
-                    </Button>
+                    Save Changes
+                  </Button>
                   </div>
                 </div>
               </motion.div>
@@ -410,12 +442,6 @@ export default function BookManager() {
           )}
         </AnimatePresence>
       </main>
-
-      <footer className="border-t border-gray-100 mt-16">
-        <div className="container mx-auto px-4 py-6 text-center text-sm text-gray-500">
-          Book Manager &copy; {new Date().getFullYear()}
-        </div>
-      </footer>
     </div>
   );
 }
